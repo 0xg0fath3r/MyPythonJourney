@@ -1,0 +1,72 @@
+import re
+import requests
+
+# List of red flag keywords often used in phishing URLs
+phishing_keywords = [
+    "login", "verify", "secure", "update", "account", "bank", "paypal",
+    "webscr", "confirm", "signin", "password", "security", "ebay"
+]
+
+# List of popular URL shorteners (often used in phishing)
+shorteners = [
+    "bit.ly", "tinyurl.com", "ow.ly", "is.gd", "shorte.st", "t.co", "rebrand.ly"
+]
+
+# Function to check if URL is shortened
+def is_shortened(url):
+    for shortener in shorteners:
+        if shortener in url:
+            return True
+    return False
+
+# Function to check if URL contains phishing keywords
+def has_phishing_keywords(url):
+    for keyword in phishing_keywords:
+        if keyword.lower() in url.lower():
+            return True
+    return False
+
+# Function to validate if the URL structure looks okay
+def is_valid_url(url):
+    pattern = r"https?://[^\s/$.?#].[^\s]*"
+    return re.match(pattern, url)
+
+# Main checker function
+def check_phishing(url):
+    print("\n[🔍] Scanning URL...")
+
+    if not is_valid_url(url):
+        print("❌ Invalid URL format.")
+        return
+
+    red_flags = 0
+
+    if is_shortened(url):
+        print("⚠️ URL uses a shortening service — could be hiding something.")
+        red_flags += 1
+
+    if has_phishing_keywords(url):
+        print("🚨 Phishing-related keywords found in URL!")
+        red_flags += 1
+
+    try:
+        response = requests.get(url, timeout=5)
+        if response.status_code != 200:
+            print(f"⚠️ Page returned HTTP {response.status_code}. Might be broken or fake.")
+            red_flags += 1
+    except requests.exceptions.RequestException:
+        print("❌ Error connecting to the URL.")
+        red_flags += 1
+
+    if red_flags == 0:
+        print("✅ Link looks clean, but always double-check manually.")
+    elif red_flags == 1:
+        print("⚠️ Link looks slightly suspicious. Be careful.")
+    else:
+        print("❌ HIGH RISK — This could be a phishing link. Avoid it!")
+
+# CLI Interface
+if __name__ == "__main__":
+    print("=== PHISHING LINK CHECKER ===")
+    user_input = input("Enter the full URL (include http/https): ")
+    check_phishing(user_input)
